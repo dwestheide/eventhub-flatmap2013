@@ -4,6 +4,7 @@ object EventPlanningJsonProtocol {
   import spray.json._
   import DefaultJsonProtocol._
   import com.danielwestheide.eventhub._
+  import eventplanning.query.meetingstats.MeetingStats
   import web.CustomJsonProtocol._
   import eventplanning.domain.attendee._
   import eventplanning.domain.meeting._
@@ -42,5 +43,7 @@ object EventPlanningJsonProtocol {
   implicit val declareAttendanceFormat = jsonFormat4(DeclareAttendance)
   implicit val cancelAttendanceFormat = jsonFormat3(CancelAttendance)
   implicit val meetingFormat = jsonFormat6(Meeting)
+  implicit val meetingStats = jsonFormat7(MeetingStats)
+
   
 }

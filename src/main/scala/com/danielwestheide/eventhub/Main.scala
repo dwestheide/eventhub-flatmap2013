@@ -65,7 +65,8 @@ object Main extends App {
     new EventPlanningApiService(
       attendeeRepository,
       meetingService,
-      meetingRepository)), "eventplanning-service")
+      meetingRepository,
+      meetingStatsStore)), "eventplanning-service")
   IO(Http) ! Http.Bind(eventPlanningApiService, "localhost", port = 8081)
 
 }

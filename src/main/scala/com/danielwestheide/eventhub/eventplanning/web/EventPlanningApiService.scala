@@ -7,6 +7,7 @@ import spray.httpx.SprayJsonSupport._
 import DefaultJsonProtocol._
 import EventPlanningJsonProtocol._
 import com.danielwestheide.eventhub._
+import eventplanning.query.meetingstats._
 import web.SpraySupport._
 import eventplanning.application.attendee.AttendeeRepository
 import eventplanning.domain.attendee._
@@ -16,7 +17,8 @@ import eventplanning.domain.meeting._
 class EventPlanningApiService(
     attendeeRepository: AttendeeRepository,
     meetingService: MeetingService,
-    meetingRepository: MeetingRepository) extends HttpServiceActor {
+    meetingRepository: MeetingRepository,
+    meetingStatsStore: MeetingStatsStore) extends HttpServiceActor {
 
   implicit val ec = context.dispatcher
   def receive = runRoute(eventPlanningRoute)
@@ -30,6 +32,11 @@ class EventPlanningApiService(
               path("") {
                 complete {
                   createGetResponse[Meeting](meetingRepository.fromId(MeetingId(id)))
+                }
+              } ~
+              path("stats") {
+                complete {
+                  createGetResponse[MeetingStats](meetingStatsStore.forId(MeetingId(id)))
                 }
               }
             } ~
@@ -64,40 +71,40 @@ class EventPlanningApiService(
                   }
               }
             } ~
-                path("talk" / "add") {
-                  entity(as[AddTalk]) {
-                    command =>
-                      complete {
-                        meetingService.process(command).map(createCommandResponse(_))
-                      }
+            path("talk" / "add") {
+              entity(as[AddTalk]) {
+                command =>
+                  complete {
+                    meetingService.process(command).map(createCommandResponse(_))
                   }
-                } ~
-                path("venue" / "change") {
-                  entity(as[ChangeVenue]) {
-                    command =>
-                      complete {
-                        meetingService.process(command).map(createCommandResponse(_))
-                      }
+              }
+            } ~
+            path("venue" / "change") {
+              entity(as[ChangeVenue]) {
+                command =>
+                  complete {
+                    meetingService.process(command).map(createCommandResponse(_))
                   }
-                } ~
-                path("attendance" / "declare") {
-                  entity(as[DeclareAttendance]) {
-                    command =>
-                      complete {
-                        meetingService.process(command).map(createCommandResponse(_))
-                      }
+              }
+            } ~
+            path("attendance" / "declare") {
+              entity(as[DeclareAttendance]) {
+                command =>
+                  complete {
+                    meetingService.process(command).map(createCommandResponse(_))
                   }
-                } ~
-                path("attendance" / "cancel") {
-                  entity(as[CancelAttendance]) {
-                    command =>
-                      complete {
-                        meetingService.process(command).map(createCommandResponse(_))
-                      }
+              }
+            } ~
+            path("attendance" / "cancel") {
+              entity(as[CancelAttendance]) {
+                command =>
+                  complete {
+                    meetingService.process(command).map(createCommandResponse(_))
                   }
-                }
+              }
             }
           }
+        }
       }
     }
   }
