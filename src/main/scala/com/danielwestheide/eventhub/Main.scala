@@ -14,6 +14,7 @@ object Main extends App {
   import eventplanning.application.attendee.{AttendeeProcessor, AttendeeRepository}
   import eventplanning.application.meeting._
   import eventplanning.web.EventPlanningApiService
+  import eventplanning.query.meetingstats.{MeetingStatsEventHandler, MeetingStatsStore}
 
   implicit val system = ActorSystem("eventhub-server")
   implicit val timeout = Timeout(5.seconds)
@@ -41,7 +42,18 @@ object Main extends App {
     }))
   val meetingService = new MeetingService(meetingProcessor)
 
+  val meetingStatsStore = new MeetingStatsStore
+
+  val meetingMulticastTargets = List(
+    system.actorOf(Props(new MeetingStatsEventHandler(meetingStatsStore) with Receiver)))
+
+  val meetingMulticastProcessor = extension.processorOf(
+    ProcessorProps(4, pid => new Multicast(meetingMulticastTargets, identity) with Confirm with Eventsourced {
+      val id = pid
+    }))
+
   extension.channelOf(DefaultChannelProps(2, attendeeProcessor).withName("identity"))
+  extension.channelOf(DefaultChannelProps(4, meetingMulticastProcessor).withName("meeting-listeners"))
 
   extension.recover(20.seconds)
 
@@ -55,6 +67,5 @@ object Main extends App {
       meetingService,
       meetingRepository)), "eventplanning-service")
   IO(Http) ! Http.Bind(eventPlanningApiService, "localhost", port = 8081)
-
 
 }
