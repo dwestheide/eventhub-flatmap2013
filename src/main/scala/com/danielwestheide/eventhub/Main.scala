@@ -12,6 +12,7 @@ object Main extends App {
   import akka.io.IO
   import spray.can.Http
   import eventplanning.application.attendee.{AttendeeProcessor, AttendeeRepository}
+  import eventplanning.application.meeting._
   import eventplanning.web.EventPlanningApiService
 
   implicit val system = ActorSystem("eventhub-server")
@@ -33,16 +34,27 @@ object Main extends App {
       val id = pid
     }))
 
-  extension.channelOf(DefaultChannelProps(2, attendeeProcessor).withName("iam"))
+  val meetingRepository = new MeetingRepository
+  val meetingProcessor = extension.processorOf(ProcessorProps(
+    3, pid => new MeetingProcessor(meetingRepository) with Emitter with Eventsourced {
+      val id = pid
+    }))
+  val meetingService = new MeetingService(meetingProcessor)
+
+  extension.channelOf(DefaultChannelProps(2, attendeeProcessor).withName("identity"))
 
   extension.recover(20.seconds)
 
   val identityApiService = system.actorOf(Props(
-    new IdentityApiService(userService, userRepository)), "iam-service")
+    new IdentityApiService(userService, userRepository)), "identity-service")
   IO(Http) ! Http.Bind(identityApiService, "localhost", port = 8080)
 
   val eventPlanningApiService = system.actorOf(Props(
-    new EventPlanningApiService(attendeeRepository)), "eventplanning-service")
+    new EventPlanningApiService(
+      attendeeRepository,
+      meetingService,
+      meetingRepository)), "eventplanning-service")
   IO(Http) ! Http.Bind(eventPlanningApiService, "localhost", port = 8081)
+
 
 }
