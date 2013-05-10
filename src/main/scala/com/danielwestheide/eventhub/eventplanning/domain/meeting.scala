@@ -4,6 +4,8 @@ object meeting {
 
   import attendee.AttendeeId
   import org.joda.time.DateTime
+  import scalaz.Validation
+  import scalaz.syntax.validation._
   import com.danielwestheide.eventhub.common.{DomainEvent, Command}
 
   case class Venue(
@@ -32,7 +34,41 @@ object meeting {
       time: DateTime,
       venue: Venue,
       talks: Vector[Talk],
-      attendances: Vector[Attendance])
+      attendances: Vector[Attendance]) {
+
+    def addTalk(talk: Talk): Meeting = copy(talks = this.talks :+ talk)
+
+    def moveToVenue(aVenue: Venue): Validation[String, Meeting] =
+      if (aVenue.capacity < attendances.size)
+        s"Capacity must be at least ${attendances.size}, but was ${aVenue.capacity}".failure
+      else copy(venue = aVenue).success
+
+    def declareAttendance(
+        attendeeId: AttendeeId,
+        confidence: Confidence): Validation[String, Meeting] =
+      for {
+        _ <- assertAttendanceIsNew(attendeeId)
+        _ <- assertCapacityIsSufficient
+        attendance = Attendance(attendeeId, confidence)
+      } yield copy(attendances = attendances :+ attendance)
+
+    def cancelAttendance(attendeeId: AttendeeId): Validation[String, Meeting] = {
+      val (toRemove, remaining) = attendances.partition(_.attendeeId == attendeeId)
+      if (toRemove.isEmpty) s"${attendeeId} is not attending $name".failure
+      else copy(attendances = remaining).success
+    }
+
+    private def assertAttendanceIsNew(attendeeId: AttendeeId) =
+      if (attendances.exists(_.attendeeId == attendeeId))
+        s"${attendeeId} is already attending $name".failure
+      else this.success
+
+    private def assertCapacityIsSufficient =
+      if (attendances.size == venue.capacity)
+        s"Capacity of ${venue.name} is exhausted with ${attendances.size} registered attendees".failure
+      else this.success
+
+  }
 
   // commands for the Meeting aggregate:
   sealed trait MeetingCommand extends Command
