@@ -4,6 +4,9 @@ This is a demo application showcasing the use of the
 [Eventsourced library](https://github.com/eligosource/eventsourced) for implementing the Event Sourcing (and
 Command Sourcing), CQRS, and Memory Image patterns with Akka actors.
 
+It was originally written for a workshop I did at flatMap(Oslo) 2013, called "Event Sourcing for Functional Programmers". 
+If you are interested, have a look at the [slides](http://danielwestheide.com/talks/flatmap2013/slides/index.html).
+
 It makes use of the MongoDB journal based on ReactiveMongo for its event store, so you need to run a local MongoDB:
 
 `mongod`
