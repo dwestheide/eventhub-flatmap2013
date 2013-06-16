@@ -7,7 +7,6 @@ object user {
   import scalaz.syntax.validation._
   import com.danielwestheide.eventhub.iam.domain.user.User
   import akka.actor.{Actor, ActorRef}
-  import org.eligosource.eventsourced.core.Emitter
 
   type Result = Validation[String, User]
   type Aggregates = Map[String, User]
@@ -39,17 +38,15 @@ object user {
     import com.danielwestheide.eventhub.iam.domain.user.UserCommand
     import concurrent.Future
     import akka.pattern.ask
-    import org.eligosource.eventsourced.core.Message
     import akka.util.Timeout
     import scala.concurrent.duration._
 
     implicit val timeout = Timeout(5.seconds)
     def process(command: UserCommand): Future[Result] =
-      (processor ? Message(command)).mapTo[Result]
+      (processor ? command).mapTo[Result]
   }
 
   class UserProcessor(userRepository: UserRepository) extends Actor {
-    this: Emitter =>
     import com.danielwestheide.eventhub.iam.domain.user.RegisterUser
     import com.danielwestheide.eventhub.iam.domain.user.UserRegistered
     override def receive = {
@@ -60,11 +57,6 @@ object user {
           import com.danielwestheide.eventhub.iam.domain.user.UserInformation
           val result = userRepository.saveOrUpdate(
             User(UserInformation(uniqueName, firstName, lastName), password))
-          result.foreach { _ =>
-            val snr = sequenceNr
-            emitter("iam").sendEvent(
-              UserRegistered(uniqueName, firstName, lastName, issuedAt, snr))
-          }
           sender ! result
         }
     }
