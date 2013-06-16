@@ -51,19 +51,16 @@ object user {
     import com.danielwestheide.eventhub.iam.domain.user.RegisterUser
     import com.danielwestheide.eventhub.iam.domain.user.UserRegistered
     override def receive = {
-      case message: Message => 
-      message.event match {
-        case RegisterUser(uniqueName, firstName, lastName, password, issuedAt) =>
-          if (userRepository.contains(uniqueName))
-            sender ! s"User name $uniqueName is already taken".fail
-          else {
-            import com.danielwestheide.eventhub.iam.domain.user.UserInformation
-            val result = userRepository.saveOrUpdate(
-              User(UserInformation(uniqueName, firstName, lastName), password))
-            println("repo: " + userRepository.fromUniqueName(uniqueName))
-            sender ! result
-          }
-      }
+      case RegisterUser(uniqueName, firstName, lastName, password, issuedAt) =>
+        if (userRepository.contains(uniqueName))
+          sender ! s"User name $uniqueName is already taken".fail
+        else {
+          import com.danielwestheide.eventhub.iam.domain.user.UserInformation
+          val result = userRepository.saveOrUpdate(
+            User(UserInformation(uniqueName, firstName, lastName), password))
+          println("repo: " + userRepository.fromUniqueName(uniqueName))
+          sender ! result
+        }
     }
   }
 

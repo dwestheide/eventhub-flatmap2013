@@ -19,7 +19,7 @@ object Main extends App {
 
   val userRepository = new UserRepository
   val userProcessor = extension.processorOf(ProcessorProps(
-    1, pid => new UserProcessor(userRepository) with Eventsourced {
+    1, pid => new UserProcessor(userRepository) with Receiver with Eventsourced {
       val id = pid
     }))
   val userService = new UserService(userProcessor)
